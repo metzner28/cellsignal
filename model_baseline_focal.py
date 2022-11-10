@@ -57,7 +57,6 @@ model.conv1 = new_conv
 
 # modify output layer so probabilities for each sirna class are predicted
 model.fc = nn.Linear(model.fc.in_features, n_classes)
-
 model = model.to(device)
 
 # %%
@@ -68,6 +67,7 @@ focal_loss = torch.hub.load(
 	'adeelh/pytorch-multi-class-focal-loss',
 	model='FocalLoss',
 	alpha=torch.tensor([.75, .25]),
+    device = 'cuda:0',
 	gamma=2,
 	reduction='mean',
 	force_reload=False
