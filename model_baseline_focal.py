@@ -62,17 +62,16 @@ model = model.to(device)
 
 # %%
 # define the focal loss function
+# https://github.com/AdeelH/pytorch-multi-class-focal-loss
 
-class FocalLoss(nn.CrossEntropyLoss):
-
-    def __init__(self, alpha = 0.25, gamma = 2, reduction = 'none'):
-        super().__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
-
-    def forward(self, inputs, targets):
-        return torchvision.ops.focal_loss.sigmoid_focal_loss(inputs = inputs, targets = targets, alpha = self.alpha, gamma = self.gamma, reduction = self.reduction)
+focal_loss = torch.hub.load(
+	'adeelh/pytorch-multi-class-focal-loss',
+	model='FocalLoss',
+	alpha=torch.tensor([.75, .25]),
+	gamma=2,
+	reduction='mean',
+	force_reload=False
+)
 
 # %%
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
@@ -153,7 +152,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 # %%
 dataloaders = {'train': train_loader, 'val': val_loader}
 # criterion = nn.CrossEntropyLoss()
-criterion = FocalLoss()
+criterion = focal_loss
 optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9)
 model_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 2, gamma = 0.1)
 
