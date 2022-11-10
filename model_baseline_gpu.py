@@ -121,12 +121,12 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
-
-            if phase == 'train':
-                scheduler.step()
             
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
+
+            if phase == 'val':
+                scheduler.step()
 
             if phase == 'train':
                 history['train_loss'].append(epoch_loss.detach().cpu().numpy())
@@ -152,10 +152,9 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 
 # %%
 dataloaders = {'train': train_loader, 'val': val_loader}
-# criterion = nn.CrossEntropyLoss()
-criterion = FocalLoss()
+criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9)
-model_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 2, gamma = 0.1)
+model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
 
 # %%
 params = {
@@ -173,4 +172,4 @@ try:
 finally:
     torch.save(model.state_dict(), 'resnet18_baseline_fully_trained.pt')
     df_model = pd.DataFrame(history)
-    df_model.to_csv("resnet18_baseline_fully_trained.csv", index = False)
+    df_model.to_csv("resnet18_mdfinal.csv", index = False)

@@ -2,13 +2,12 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import torchvision
-import os
+from torchsummary import summary
 from data_loader_gpu import CellSignalDataset
 from torch.utils.data import DataLoader, random_split
 import time
