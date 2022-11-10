@@ -8,6 +8,7 @@ import torchvision
 from data_loader_gpu import CellSignalDataset
 from torch.utils.data import DataLoader, random_split
 from tqdm.auto import tqdm
+import sys
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # %%
@@ -45,6 +46,35 @@ def get_predictions(model, dataloader):
             preds.append(pred_np)
             exp_labels.append(exp_label)
             true_labels.append(label)
+    
+    return preds, exp_labels
+
+# %%
+def get_model_outputs(model, dataloader):
+
+    print("getting probabilities")
+    preds = []
+    exp_labels = []
+
+    model.eval()
+
+    for input, exp_label, label in tqdm(dataloader):
+        
+        with torch.set_grad_enabled(False):
+            
+            input = input.to(device)
+            # exp_label = exp_label.to(device)
+            label = label.to(device)
+            
+            output = model(input)
+            print('done')
+            output_np = output.cpu().detach().numpy()
+        
+            preds.append(output_np)
+            exp_labels.append(exp_label)
+    
+    return preds, exp_labels
+
 
 # %%
 model = torchvision.models.resnet18()
@@ -55,9 +85,13 @@ with torch.no_grad():
 model.conv1 = new_conv
 model.fc = nn.Linear(model.fc.in_features, 1139)
 model = model.to(device)
-model.load_state_dict(
-    torch.load("resnet18_baseline_fully_trained.pt")
-)
+
+try:
+    model.load_state_dict(
+        torch.load(sys.argv[1])
+    )
+except:
+    raise ValueError("model weights don't exist at specified path")
 
 # %%
 preds, exp_labels = get_predictions(model, loader)
