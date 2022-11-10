@@ -65,11 +65,12 @@ model = model.to(device)
 
 focal_loss = torch.hub.load(
 	'adeelh/pytorch-multi-class-focal-loss',
-	model='FocalLoss',
-	alpha=torch.tensor([.75, .25]),
-    device = 'cuda:0',
+	model='focal_loss',
+	alpha=[.75, .25],
 	gamma=2,
 	reduction='mean',
+	device='cuda:0',
+	dtype=torch.float32,
 	force_reload=False
 )
 
