@@ -65,7 +65,7 @@ model = model.to(device)
 
 class FocalLoss(nn.CrossEntropyLoss):
 
-    def __init__(self, alpha, gamma, reduction):
+    def __init__(self, alpha = 0.25, gamma = 2, reduction = 'none'):
         super().__init__()
         self.alpha = alpha
         self.gamma = gamma
