@@ -24,7 +24,7 @@ from tqdm.auto import tqdm
 # md_equal.to_csv("md_equal_.csv") # this goes to R for the actual downsampling
 
 # %%
-data = CellSignalDataset('md_final.csv', transform = None)
+data = CellSignalDataset('../md_final.csv', transform = None)
 n_classes = len(np.unique(data.img_labels["sirna_id"]))
 TRAIN_VAL_SPLIT = 0.8
 n_train = round(len(data) * TRAIN_VAL_SPLIT)
