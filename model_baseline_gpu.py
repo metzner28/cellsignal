@@ -16,12 +16,12 @@ import copy
 from tqdm.auto import tqdm
 
 # %%
-md_train = pd.read_csv("md_train.csv")
-downsample = lambda df: df["cell_type"] == "U2OS" or (df["cell_type"] != "U2OS" and df["site"] == 1)
-md_train["downsample"] = md_train.apply(downsample, axis = 1)
-md_train["path"] = md_train.apply(lambda df: df["path"].replace("/Volumes/DRIVE/rxrx1/", "/home/ubuntu/cellsignal/"), axis = 1)
-md_equal = md_train[md_train["downsample"]]
-md_equal.to_csv("md_equal_.csv") # this goes to R for the actual downsampling
+# md_train = pd.read_csv("md_train.csv")
+# downsample = lambda df: df["cell_type"] == "U2OS" or (df["cell_type"] != "U2OS" and df["site"] == 1)
+# md_train["downsample"] = md_train.apply(downsample, axis = 1)
+# md_train["path"] = md_train.apply(lambda df: df["path"].replace("/Volumes/DRIVE/rxrx1/", "/home/ubuntu/cellsignal/"), axis = 1)
+# md_equal = md_train[md_train["downsample"]]
+# md_equal.to_csv("md_equal_.csv") # this goes to R for the actual downsampling
 
 # %%
 data = CellSignalDataset('md_final.csv', transform = None)
@@ -59,6 +59,20 @@ model.conv1 = new_conv
 model.fc = nn.Linear(model.fc.in_features, n_classes)
 
 model = model.to(device)
+
+# %%
+# define the focal loss function
+
+class FocalLoss(nn.CrossEntropyLoss):
+
+    def __init__(self, alpha, gamma, reduction):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self):
+        return torchvision.ops.focal_loss.sigmoid_focal_loss(inputs = self.inputs, targets = self.targets, alpha = self.alpha, gamma = self.gamma, reduction = self.reduction)
 
 # %%
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
@@ -115,11 +129,11 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
             if phase == 'train':
-                history['train_loss'].append(epoch_loss)
-                history['train_acc'].append(epoch_acc)
+                history['train_loss'].append(epoch_loss.detach().cpu().numpy())
+                history['train_acc'].append(epoch_acc.detach().cpu().numpy())
             elif phase == 'val':
-                history['val_loss'].append(epoch_loss)
-                history['val_acc'].append(epoch_acc)
+                history['val_loss'].append(epoch_loss.detach().cpu().numpy())
+                history['val_acc'].append(epoch_acc.detach().cpu().numpy())
 
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
@@ -138,9 +152,10 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 
 # %%
 dataloaders = {'train': train_loader, 'val': val_loader}
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
+criterion = FocalLoss()
 optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9)
-model_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 7, gamma = 0.1)
+model_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 2, gamma = 0.1)
 
 # %%
 params = {
@@ -157,6 +172,5 @@ try:
 
 finally:
     torch.save(model.state_dict(), 'resnet18_baseline_fully_trained.pt')
-    history = {k: v.cpu() for k,v in history.items()}
     df_model = pd.DataFrame(history)
     df_model.to_csv("resnet18_baseline_fully_trained.csv", index = False)
