@@ -16,13 +16,15 @@ import copy
 from tqdm.auto import tqdm
 
 # %%
-# md_train = pd.read_csv("md_train.csv")
-# md_downsampled = md_train[md_train["site"] == 1]
-# df_downsampled["path"] =  df_downsampled.apply(lambda df: df["path"].replace("/Volumes/DRIVE/rxrx1/", "/home/ubuntu/cellsignal/"), axis = 1)
-# df_downsampled.to_csv("df_downsampled.csv", index = False)
+md_train = pd.read_csv("md_train.csv")
+downsample = lambda df: df["cell_type"] == "U2OS" or (df["cell_type"] != "U2OS" and df["site"] == 1)
+md_train["downsample"] = md_train.apply(downsample, axis = 1)
+md_train["path"] = md_train.apply(lambda df: df["path"].replace("/Volumes/DRIVE/rxrx1/", "/home/ubuntu/cellsignal/"), axis = 1)
+md_equal = md_train[md_train["downsample"]]
+md_equal.to_csv("md_equal_.csv") # this goes to R for the actual downsampling
 
 # %%
-data = CellSignalDataset('md_downsampled.csv', transform = None)
+data = CellSignalDataset('md_final.csv', transform = None)
 n_classes = len(np.unique(data.img_labels["sirna_id"]))
 TRAIN_VAL_SPLIT = 0.8
 n_train = round(len(data) * TRAIN_VAL_SPLIT)
