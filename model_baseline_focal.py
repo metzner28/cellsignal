@@ -153,8 +153,8 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 dataloaders = {'train': train_loader, 'val': val_loader}
 # criterion = nn.CrossEntropyLoss()
 criterion = focal_loss
-optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9)
-model_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 2, gamma = 0.1)
+optimizer = optim.SGD(model.parameters(), lr = 0.05, momentum = 0.9)
+model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
 
 # %%
 params = {
