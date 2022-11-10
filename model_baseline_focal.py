@@ -128,11 +128,11 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
             if phase == 'train':
-                history['train_loss'].append(epoch_loss.cpu().numpy())
-                history['train_acc'].append(epoch_acc.cpu().numpy())
+                history['train_loss'].append(epoch_loss)
+                history['train_acc'].append(epoch_acc)
             elif phase == 'val':
-                history['val_loss'].append(epoch_loss.cpu().numpy())
-                history['val_acc'].append(epoch_acc.cpu().numpy())
+                history['val_loss'].append(epoch_loss)
+                history['val_acc'].append(epoch_acc)
 
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
