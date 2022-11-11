@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import torchvision
@@ -48,6 +49,32 @@ summary(model, input_size = (6,512,512))
 # %%
 class CellTypeModel(nn.Module):
     
-    def __init__(self, inputs, cell_types):
+    def __init__(self, inputs, cell_types, emb_dim = 512, n_classes = 1139):
+        
         super().__init__()
-        self.embedding = nn.Embedding(4, 512)
+        self.embedding = nn.Embedding(4, emb_dim)
+
+        model = torchvision.models.resnet18()
+        trained_kernel = model.conv1.weight
+        new_conv = nn.Conv2d(6, 64, kernel_size = 7, stride = 2, padding = 3, bias = False)
+        with torch.no_grad():
+            new_conv.weight[:] = torch.stack([torch.mean(trained_kernel, 1)] * 6, dim = 1)
+        model.conv1 = new_conv
+        self.features = nn.ModuleList(model.children())[:-1]
+        self.features = nn.Sequential(*self.features)
+        self.fc = nn.Linear(emb_dim, n_classes)
+
+    
+    def forward(self, x, cell_types):
+
+        '''
+        taking cell type as additional arg, embedding into vector with same dimensions as the output of the ResNet18 head, elementwise multiplying cell type embedding with head, taking ReLU of embedding * image vector, then classifying
+        '''
+        
+        x = self.features(x)
+        emb = self.embedding(cell_types)
+        emb_x = x * emb
+        output = F.relu(emb_x)
+        output = self.fc(output)
+
+        return output
