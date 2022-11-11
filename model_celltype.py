@@ -42,9 +42,12 @@ new_conv = nn.Conv2d(6, 64, kernel_size = 7, stride = 2, padding = 3, bias = Fal
 with torch.no_grad():
     new_conv.weight[:] = torch.stack([torch.mean(trained_kernel, 1)] * 6, dim = 1)
 model.conv1 = new_conv
-
-emb = nn.Embedding(n_cell_types, n_classes)
-model.fc = nn.Linear
+# model.fc = nn.Linear(model.fc.in_features, n_classes)
+model = torch.nn.Sequential(*(list(model.children())[:-1]))
 summary(model, input_size = (6,512,512))
-
 # %%
+class CellTypeModel(nn.Module):
+    
+    def __init__(self, inputs, cell_types):
+        super().__init__()
+        self.embedding = nn.Embedding(4, 512)
