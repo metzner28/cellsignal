@@ -87,7 +87,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
     }
 
     since = time.time()
-    best_model_wts= copy.deepcopy(model.state_dict())
+    best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
     
     for epoch in range(epochs):
@@ -126,14 +126,14 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
             if phase == 'val':
-                scheduler.step()
+                scheduler.step(epoch_loss)
 
             if phase == 'train':
-                history['train_loss'].append(epoch_loss.detach().cpu().numpy())
-                history['train_acc'].append(epoch_acc.detach().cpu().numpy())
+                history['train_loss'].append(epoch_loss)
+                history['train_acc'].append(epoch_acc)
             elif phase == 'val':
-                history['val_loss'].append(epoch_loss.detach().cpu().numpy())
-                history['val_acc'].append(epoch_acc.detach().cpu().numpy())
+                history['val_loss'].append(epoch_loss)
+                history['val_acc'].append(epoch_acc)
 
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
@@ -141,7 +141,6 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
 
-            print()
 
     time_elapsed = time.time() - since
     print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
@@ -168,8 +167,9 @@ params = {
 
 try:
     model, history = train_model(**params)
+    df_model = pd.DataFrame(history)
+    df_model.to_csv("resnet18_mdfinal.csv", index = False)
 
 finally:
     torch.save(model.state_dict(), 'resnet18_baseline_mdfinal.pt')
-    df_model = pd.DataFrame(history)
-    df_model.to_csv("resnet18_mdfinal.csv", index = False)
+    
