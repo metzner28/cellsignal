@@ -170,6 +170,6 @@ try:
     model, history = train_model(**params)
 
 finally:
-    torch.save(model.state_dict(), 'resnet18_baseline_fully_trained.pt')
+    torch.save(model.state_dict(), 'resnet18_baseline_mdfinal.pt')
     df_model = pd.DataFrame(history)
     df_model.to_csv("resnet18_mdfinal.csv", index = False)
