@@ -62,7 +62,7 @@ class CellTypeModel(nn.Module):
         x = self.features(x).flatten(1)
         emb = self.embedding(cell_types)
         emb_x = x * emb
-        output = F.relu(emb_x)
+        output = nn.ReLU(emb_x)
         output = self.fc(output)
 
         return output

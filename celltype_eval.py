@@ -13,7 +13,7 @@ from itertools import chain
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # %%
-# data = pd.read_csv("../md_test_final.csv")
+data = pd.read_csv("../md_test_final.csv")
 # data = data[data["site"] == 1]
 # data["path"] = data.apply(lambda df: df["path"].replace("/Volumes/DRIVE/rxrx1/", "/home/ubuntu/cellsignal/"), axis = 1)
 # data.to_csv("md_test_final.csv", index = False)
@@ -26,6 +26,7 @@ loader = DataLoader(test, batch_size = 32, shuffle = False)
 def get_model_outputs(model, dataloader):
 
     preds = []
+    embeddings = []
     exp_labels = []
     labels = []
 
@@ -40,15 +41,19 @@ def get_model_outputs(model, dataloader):
             # exp_label = exp_label.to(device)
             # label = label.to(device)
             
-            output = model(input)
-            softmax = nn.Softmax(dim = 1)
-            probs = softmax(output).cpu().detach().numpy()
+            embeddings, probs = model(input)
+            probs = probs.cpu().detach().numpy()
+            embeddings = embeddings.cpu().detach().numpy()
         
             preds.append(probs)
+            embeddings.append(embeddings)
             exp_labels.append(exp_label)
             labels.append(label)
+
+        break
     
     preds = np.concatenate(preds, axis = 0)
+    embeddings = np.concatenate(embeddings, axis = 0)
     exp_labels = np.array(list(chain(*exp_labels)))
     labels = np.array(list(chain(*labels)))
 
@@ -56,16 +61,43 @@ def get_model_outputs(model, dataloader):
 
 
 # %%
-model = torchvision.models.resnet18()
-trained_kernel = model.conv1.weight
-new_conv = nn.Conv2d(6, 64, kernel_size = 7, stride = 2, padding = 3, bias = False)
-with torch.no_grad():
-    new_conv.weight[:] = torch.stack([torch.mean(trained_kernel, 1)] * 6, dim = 1)
-model.conv1 = new_conv
-model.fc = nn.Linear(model.fc.in_features, 1139)
-# model.load_state_dict(
-#          torch.load("../results/resnet18_baseline_mdfinal.pt")
-# )
+class CellTypeModel(nn.Module):
+    
+    def __init__(self, emb_dim = 512, n_classes = 1139):
+        
+        super().__init__()
+
+        # 4 cell types
+        self.embedding = nn.Embedding(4, emb_dim)
+
+        model = torchvision.models.resnet18()
+        trained_kernel = model.conv1.weight
+        new_conv = nn.Conv2d(6, 64, kernel_size = 7, stride = 2, padding = 3, bias = False)
+        with torch.no_grad():
+            new_conv.weight[:] = torch.stack([torch.mean(trained_kernel, 1)] * 6, dim = 1)
+        model.conv1 = new_conv
+        self.features = nn.ModuleList(model.children())[:-1]
+        self.features = nn.Sequential(*self.features)
+        self.fc = nn.Linear(emb_dim, n_classes)
+
+    def forward(self, x, cell_types):
+
+        '''
+        taking cell type as additional arg, embedding into vector with same dimensions as the output of the ResNet18 head, elementwise multiplying cell type embedding with head, taking ReLU of embedding * image vector, then classifying
+        '''
+        
+        x = self.features(x).flatten(1)
+        emb = self.embedding(cell_types)
+        emb_x = x * emb
+        output_embedding = nn.ReLU(emb_x)
+        fc_final = self.fc(output_embedding)
+
+        softmax = nn.Softmax(dim = 1)
+        output_probs = softmax(fc_final)
+
+
+
+        return output_embedding, output_probs
 
 try:
     model.load_state_dict(
@@ -74,6 +106,7 @@ try:
 except:
     raise ValueError("model weights don't exist at specified path")
 
+model = CellTypeModel()
 model = model.to(device)
 
 # %%
