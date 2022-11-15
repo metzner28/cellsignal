@@ -14,11 +14,10 @@ from data_loader_gpu import CellSignalDataset
 from torch.utils.data import DataLoader, random_split
 import time
 import copy
-from torchsummary import summary
 from tqdm.auto import tqdm
 
 # %%
-data = CellSignalDataset('md_final.csv', transform = None)
+data = CellSignalDataset('../md_final.csv', transform = None)
 n_classes = len(np.unique(data.img_labels["sirna_id"]))
 TRAIN_VAL_SPLIT = 0.8
 n_train = round(len(data) * TRAIN_VAL_SPLIT)
@@ -54,14 +53,13 @@ class CellTypeModel(nn.Module):
         self.features = nn.Sequential(*self.features)
         self.fc = nn.Linear(emb_dim, n_classes)
 
-    
     def forward(self, x, cell_types):
 
         '''
         taking cell type as additional arg, embedding into vector with same dimensions as the output of the ResNet18 head, elementwise multiplying cell type embedding with head, taking ReLU of embedding * image vector, then classifying
         '''
         
-        x = self.features(x)
+        x = self.features(x).flatten(1)
         emb = self.embedding(cell_types)
         emb_x = x * emb
         output = F.relu(emb_x)
@@ -71,7 +69,9 @@ class CellTypeModel(nn.Module):
 
 # %%
 model = CellTypeModel()
+model.to(device)
 
+# %%
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 
 def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, epochs = 20):
@@ -104,17 +104,16 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             running_corrects = 0
 
             for inputs, exp_labels, labels in tqdm(dataloaders[phase]):
-                
+
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                cell_types = get_celltype()
-
+                cell_types = [get_celltype(i) for i in exp_labels]
                 cell_types = torch.LongTensor(cell_types).to(device)
                 
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
+                    outputs = model(inputs, cell_types)
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
@@ -124,6 +123,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
+
             
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
@@ -151,3 +151,26 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 
     model.load_state_dict(best_model_wts)
     return model, history
+
+
+# %%
+dataloaders = {'train': train_loader, 'val': val_loader}
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9)
+model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
+
+# %%
+params = {
+    'model': model,
+    'dataloaders': dataloaders,
+    'criterion': criterion,
+    'optimizer': optimizer,
+    'scheduler': model_lr_scheduler,
+    'dataset_sizes': dataset_sizes
+}
+
+model, history = train_model(**params, epochs = 25)
+df_model = pd.DataFrame(history)
+df_model.to_csv("cell_type_ce.csv", index = False)
+
+torch.save(model.state_dict(), 'cell_type_ce.pt')

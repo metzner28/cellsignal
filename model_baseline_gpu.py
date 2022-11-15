@@ -60,19 +60,6 @@ model.fc = nn.Linear(model.fc.in_features, n_classes)
 
 model = model.to(device)
 
-# %%
-# define the focal loss function
-
-class FocalLoss(nn.CrossEntropyLoss):
-
-    def __init__(self, alpha = 0.25, gamma = 2, reduction = 'none'):
-        super().__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
-
-    def forward(self):
-        return torchvision.ops.focal_loss.sigmoid_focal_loss(inputs = self.inputs, targets = self.targets, alpha = self.alpha, gamma = self.gamma, reduction = self.reduction)
 
 # %%
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
@@ -130,10 +117,10 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 
             if phase == 'train':
                 history['train_loss'].append(epoch_loss)
-                history['train_acc'].append(epoch_acc)
+                history['train_acc'].append(float(epoch_acc.detach().cpu()))
             elif phase == 'val':
                 history['val_loss'].append(epoch_loss)
-                history['val_acc'].append(epoch_acc)
+                history['val_acc'].append(float(epoch_acc.detach().cpu()))
 
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
@@ -165,11 +152,8 @@ params = {
     'dataset_sizes': dataset_sizes
 }
 
-try:
-    model, history = train_model(**params)
-    df_model = pd.DataFrame(history)
-    df_model.to_csv("resnet18_mdfinal.csv", index = False)
+model, history = train_model(**params, epochs = 25)
+df_model = pd.DataFrame(history)
+df_model.to_csv("resnet18_mdfinal.csv", index = False)
 
-finally:
-    torch.save(model.state_dict(), 'resnet18_baseline_mdfinal.pt')
-    
+torch.save(model.state_dict(), 'resnet18_baseline_mdfinal.pt')
