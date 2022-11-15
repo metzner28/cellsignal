@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader, random_split
 import time
 import copy
 from tqdm.auto import tqdm
+from helpers_contrastive import *
 
 # %%
 data = CellSignalDataset('../md_final.csv', transform = None)
@@ -24,57 +25,91 @@ n_train = round(len(data) * TRAIN_VAL_SPLIT)
 n_val = round(len(data) * (1 - TRAIN_VAL_SPLIT))
 assert n_train + n_val == len(data)
 
+full_loader = DataLoader(data, batch_size = 128, shuffle = True)
+
 train, val = random_split(data, lengths = [n_train, n_val], generator = torch.Generator().manual_seed(42))
 train_loader = DataLoader(train, batch_size = 32, shuffle = True)
 val_loader = DataLoader(val, batch_size = 32, shuffle = True)
 
-dataset_sizes = {'train': len(train), 'val': len(val)}
+dataset_sizes = {'train': len(train), 'val': len(val), 'full': len(data)}
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 n_classes = len(np.unique(data.img_labels["sirna_id"]))
 
 # %%
-class CellTypeModel(nn.Module):
-    
-    def __init__(self, emb_dim = 512, n_classes = 1139):
-        
-        super().__init__()
-
-        # 4 cell types
-        self.embedding = nn.Embedding(4, emb_dim)
-
-        model = torchvision.models.resnet18()
-        trained_kernel = model.conv1.weight
-        new_conv = nn.Conv2d(6, 64, kernel_size = 7, stride = 2, padding = 3, bias = False)
-        with torch.no_grad():
-            new_conv.weight[:] = torch.stack([torch.mean(trained_kernel, 1)] * 6, dim = 1)
-        model.conv1 = new_conv
-        self.features = nn.ModuleList(model.children())[:-1]
-        self.features = nn.Sequential(*self.features)
-        self.fc = nn.Linear(emb_dim, n_classes)
-
-    def forward(self, x, cell_types):
-
-        '''
-        taking cell type as additional arg, embedding into vector with same dimensions as the output of the ResNet18 head, elementwise multiplying cell type embedding with head, taking ReLU of embedding * image vector, then classifying
-        '''
-        
-        x = self.features(x).flatten(1)
-        emb = self.embedding(cell_types)
-        emb_x = x * emb
-        output = F.ReLU(emb_x)
-        output = self.fc(output)
-
-        return output
-
-# %%
-model = CellTypeModel()
-model.to(device)
+model_encoder = ContrastiveCellTypeEncoder()
+model_classifier = ContrastiveCellTypeClassifier()
+model_encoder.to(device)
+model_classifier.to(device)
 
 # %%
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 
-def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, epochs = 20):
+def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs = 25, scheduler = None):
+
+    # 4 will throw an error once passed to embedding, which is the way it should be
+    get_celltype = lambda ct: 0 if 'HUVEC' in ct else 1 if 'U2OS' in ct else 2 if 'HEPG2' in ct else 3 if 'RPE' in ct else 4
+    
+    history = {
+        'train_loss': [],
+    }
+
+    since = time.time()
+    best_model_wts = copy.deepcopy(model.state_dict())
+    best_loss = 1000
+    
+    for epoch in range(epochs):
+
+        print(f'Epoch {epoch + 1}/{epochs}')
+        print('-' * 10)
+
+        model.train()
+        running_loss = 0.0
+
+        for inputs, exp_labels, labels in tqdm(dataloader):
+
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            cell_types = [get_celltype(i) for i in exp_labels]
+            cell_types = torch.LongTensor(cell_types).to(device)
+            
+            optimizer.zero_grad()
+
+            with torch.set_grad_enabled(True):
+                
+                outputs, _ = model(inputs, cell_types)
+                loss = criterion(outputs, labels)
+
+                loss.backward()
+                optimizer.step()
+            
+            running_loss += loss.item() * inputs.size(0)
+            epoch_loss = running_loss / dataset_sizes['full']
+            if scheduler:
+                scheduler.step(epoch_loss)
+          
+            history['train_loss'].append(epoch_loss)
+           
+
+            print(f'Train loss: {epoch_loss:.4f}')
+
+            if epoch_loss < best_loss:
+                best_loss = epoch_loss
+                best_model_wts = copy.deepcopy(model.state_dict())
+
+
+    time_elapsed = time.time() - since
+    print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Best loss: {best_loss:4f}')
+
+    model.load_state_dict(best_model_wts)
+    torch.save(model.state_dict(), '../results/contrastive_encoder.pt')
+    
+    return history
+
+
+# %%    
+def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, epochs = 25, enc_state_dict = '../results/contrastive_encoder.pt'):
 
     # 4 will throw an error once passed to embedding, which is the way it should be
     get_celltype = lambda ct: 0 if 'HUVEC' in ct else 1 if 'U2OS' in ct else 2 if 'HEPG2' in ct else 3 if 'RPE' in ct else 4
@@ -89,7 +124,15 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
     since = time.time()
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
-    
+
+    try:
+        encoder.load_state_dict(
+            torch.load(enc_state_dict)
+        ) 
+        encoder.eval()  
+    except:
+        raise FileNotFoundError("encoder parameters don't exist at specified path")
+
     for epoch in range(epochs):
         print(f'Epoch {epoch + 1}/{epochs}')
         print('-' * 10)
@@ -106,7 +149,10 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             for inputs, exp_labels, labels in tqdm(dataloaders[phase]):
 
                 inputs = inputs.to(device)
+                _, inputs = encoder(inputs)
+
                 labels = labels.to(device)
+
                 cell_types = [get_celltype(i) for i in exp_labels]
                 cell_types = torch.LongTensor(cell_types).to(device)
                 
@@ -150,27 +196,42 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
     print(f'Best val Acc: {best_acc:4f}')
 
     model.load_state_dict(best_model_wts)
-    return model, history
-
-
-# %%
-dataloaders = {'train': train_loader, 'val': val_loader}
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9)
-model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
+    torch.save(model.state_dict(), 'contrastive_classifier.pt')
+    return history
 
 # %%
-params = {
-    'model': model,
-    'dataloaders': dataloaders,
-    'criterion': criterion,
-    'optimizer': optimizer,
-    'scheduler': model_lr_scheduler,
+contrastive = SupConLoss()
+lars = LARS(model_encoder.parameters(), lr=0.1, eta=1e-3)
+encoder_params = {
+    'model': model_encoder,
+    'criterion': contrastive,
+    'optimizer': lars,
+    'dataloader': full_loader,
     'dataset_sizes': dataset_sizes
 }
 
-model, history = train_model(**params, epochs = 25)
-df_model = pd.DataFrame(history)
-df_model.to_csv("cell_type_ce.csv", index = False)
+# %%
+enc_history = train_encoder(**encoder_params)
+df_enc = pd.DataFrame(enc_history)
+df_enc.to_csv("cell_type_encoder_training.csv", index = False)
 
-torch.save(model.state_dict(), 'cell_type_ce.pt')
+# %%
+dataloaders = {'train': train_loader, 'val': val_loader}
+ce = nn.CrossEntropyLoss()
+optimizer = optim.SGD(model_classifier.parameters(), lr = 0.01, momentum = 0.9)
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
+
+classifier_params = {
+    'model': model_classifier,
+    'encoder': model_encoder,
+    'dataloaders': dataloaders,
+    'criterion': ce,
+    'optimizer': optimizer,
+    'scheduler': scheduler,
+    'dataset_sizes': dataset_sizes
+}
+
+# %%
+history = train_classifier(**classifier_params, epochs = 25)
+df_model = pd.DataFrame(history)
+df_model.to_csv("cell_type_classifier.csv", index = False)
