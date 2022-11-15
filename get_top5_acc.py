@@ -24,17 +24,18 @@ def get_top5(df):
 
     df_top5["top5"] = df_top5.apply(lambda df: df["top1"] + df["top2"] + df["top3"] + df["top4"] + df["top5th"], axis = 1)
 
-    df_top5 = df_top5.drop(columns = ["top2", "top3", "top4", "top5"])
+    df_top5 = df_top5.drop(columns = ["top2", "top3", "top4", "top5th"])
 
     return df_top5
 
+# %%
 if __name__ == "__main__":
 
     try:
         df = pd.read_csv(sys.argv[1])
         df_out = get_top5(df)
         df_string = sys.argv[1].split("/")[-1].split(".")[0]
-        df_out.to_csv(f"{df_string}_top5.csv")
+        df_out.to_csv(f"{df_string}_top5.csv", index = False)
 
     except:
         raise ValueError("issue with input predictions dataframe")
