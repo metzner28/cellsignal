@@ -1,15 +1,11 @@
 # %%
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 import torch.optim as optim
 from torch.optim import lr_scheduler
-import torchvision
-import os
+from torchvision import transforms
 from data_loader_gpu import CellSignalDataset
 from torch.utils.data import DataLoader, random_split
 import time
@@ -19,13 +15,14 @@ from helpers_contrastive import *
 
 # %%
 data = CellSignalDataset('../md_final.csv', transform = None)
+data_for_encoder = CellSignalDataset('../md_final.csv', transform = transforms.RandAugment())
 n_classes = len(np.unique(data.img_labels["sirna_id"]))
 TRAIN_VAL_SPLIT = 0.8
 n_train = round(len(data) * TRAIN_VAL_SPLIT)
 n_val = round(len(data) * (1 - TRAIN_VAL_SPLIT))
 assert n_train + n_val == len(data)
 
-full_loader = DataLoader(data, batch_size = 256, shuffle = True)
+enc_loader = DataLoader(data_for_encoder, batch_size = 128, shuffle = True)
 
 train, val = random_split(data, lengths = [n_train, n_val], generator = torch.Generator().manual_seed(42))
 train_loader = DataLoader(train, batch_size = 32, shuffle = True)
@@ -43,7 +40,6 @@ model_encoder.to(device)
 model_classifier.to(device)
 
 # %%
-# https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 
 def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs = 50, scheduler = None):
 
@@ -68,6 +64,14 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
 
         for inputs, exp_labels, labels in tqdm(dataloader):
 
+            # concatenate the transformed and original images from each batch into a multiview batch, per paper - ensures >1 positive per batch
+
+            inputs = torch.cat(inputs, dim = 0)
+            exp_labels = np.concatenate(np.array(exp_labels))
+            labels = torch.cat(labels, dim = 0)
+
+            # now do the training
+
             inputs = inputs.to(device)
             labels = labels.to(device)
             cell_types = [get_celltype(i) for i in exp_labels]
@@ -89,14 +93,11 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
                 scheduler.step(epoch_loss)
           
             history['train_loss'].append(epoch_loss)
-           
-
             print(f'Train loss: {epoch_loss:.4f}')
 
             if epoch_loss < best_loss:
                 best_loss = epoch_loss
                 best_model_wts = copy.deepcopy(model.state_dict())
-
 
     time_elapsed = time.time() - since
     print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
@@ -106,7 +107,6 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
     torch.save(model.state_dict(), '../results/contrastive_encoder.pt')
     
     return history
-
 
 # %%    
 def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, epochs = 25, enc_state_dict = '../results/contrastive_encoder.pt'):
@@ -209,7 +209,7 @@ encoder_params = {
     'model': model_encoder,
     'criterion': contrastive,
     'optimizer': lars,
-    'dataloader': full_loader,
+    'dataloader': enc_loader,
     'dataset_sizes': dataset_sizes,
     'scheduler': enc_scheduler
 }

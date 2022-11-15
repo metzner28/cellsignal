@@ -9,6 +9,7 @@ import os
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 from torch.utils.data import DataLoader
+import torchvision.transforms as transforms
 
 # %%
 class CellSignalDataset(Dataset):
@@ -32,16 +33,27 @@ class CellSignalDataset(Dataset):
         
         exp_label = self.img_labels.iloc[idx, self.img_labels.columns.get_loc("experiment")]
         sirna_label = self.img_labels.iloc[idx, self.img_labels.columns.get_loc("sirna_id")]
-        
-        if self.transform:
-            imgs = [self.transform(img) for img in imgs]
-        
+
         if self.target_transform:
             label = self.target_transform(label)
+        
+        if self.transform is not None:
+            
+            img_txf = [self.transform.forward(img) for img in imgs]
+            img_txf_final = torch.cat(img_txf, dim = 0) / 255
+            imgs_orig_final = torch.cat(imgs, dim = 0) / 255
+            
+            img_final = (img_txf_final, imgs_orig_final)
+            exp_label = (exp_label, exp_label)
+            sirna_label = (sirna_label, sirna_label)
+            
+            return img_final, exp_label, sirna_label
+        
         
         img_final = torch.cat(imgs, dim = 0) / 255
         return img_final, exp_label, sirna_label
 
+# %%
 def plot_image(image, exp = None, sirna = None, save = False):
         
         if image.shape != (6,512,512):
