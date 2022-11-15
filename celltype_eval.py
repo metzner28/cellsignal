@@ -13,7 +13,7 @@ from itertools import chain
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # %%
-data = pd.read_csv("../md_test_final.csv")
+# data = pd.read_csv("../md_test_final.csv")
 # data = data[data["site"] == 1]
 # data["path"] = data.apply(lambda df: df["path"].replace("/Volumes/DRIVE/rxrx1/", "/home/ubuntu/cellsignal/"), axis = 1)
 # data.to_csv("md_test_final.csv", index = False)
