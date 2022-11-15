@@ -25,7 +25,7 @@ n_train = round(len(data) * TRAIN_VAL_SPLIT)
 n_val = round(len(data) * (1 - TRAIN_VAL_SPLIT))
 assert n_train + n_val == len(data)
 
-full_loader = DataLoader(data, batch_size = 128, shuffle = True)
+full_loader = DataLoader(data, batch_size = 256, shuffle = True)
 
 train, val = random_split(data, lengths = [n_train, n_val], generator = torch.Generator().manual_seed(42))
 train_loader = DataLoader(train, batch_size = 32, shuffle = True)
@@ -45,7 +45,7 @@ model_classifier.to(device)
 # %%
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 
-def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs = 25, scheduler = None):
+def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs = 50, scheduler = None):
 
     # 4 will throw an error once passed to embedding, which is the way it should be
     get_celltype = lambda ct: 0 if 'HUVEC' in ct else 1 if 'U2OS' in ct else 2 if 'HEPG2' in ct else 3 if 'RPE' in ct else 4
@@ -149,7 +149,9 @@ def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloader
             for inputs, exp_labels, labels in tqdm(dataloaders[phase]):
 
                 inputs = inputs.to(device)
-                _, inputs = encoder(inputs)
+
+                with torch.no_grad():
+                    _, inputs = encoder(inputs)
 
                 labels = labels.to(device)
 
@@ -202,12 +204,14 @@ def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloader
 # %%
 contrastive = SupConLoss()
 lars = LARS(model_encoder.parameters(), lr=0.1, eta=1e-3)
+enc_scheduler = lr_scheduler.CosineAnnealingLR(lars, 50, verbose = True)
 encoder_params = {
     'model': model_encoder,
     'criterion': contrastive,
     'optimizer': lars,
     'dataloader': full_loader,
-    'dataset_sizes': dataset_sizes
+    'dataset_sizes': dataset_sizes,
+    'scheduler': enc_scheduler
 }
 
 # %%
@@ -218,8 +222,8 @@ df_enc.to_csv("cell_type_encoder_training.csv", index = False)
 # %%
 dataloaders = {'train': train_loader, 'val': val_loader}
 ce = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model_classifier.parameters(), lr = 0.01, momentum = 0.9)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
+optimizer = optim.RMSprop(model_classifier.parameters(), lr = 0.01)
+scheduler = lr_scheduler.ExponentialLR(optimizer, 0.97)
 
 classifier_params = {
     'model': model_classifier,
