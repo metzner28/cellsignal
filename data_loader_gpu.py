@@ -1,15 +1,11 @@
 
 # %%
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import torch
-import os
 from torch.utils.data import Dataset
 from torchvision.io import read_image
-from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
+
 
 # %%
 class CellSignalDataset(Dataset):
@@ -43,11 +39,11 @@ class CellSignalDataset(Dataset):
             img_txf_final = torch.cat(img_txf, dim = 0) / 255
             imgs_orig_final = torch.cat(imgs, dim = 0) / 255
             
-            img_final = (img_txf_final, imgs_orig_final)
-            exp_label = (exp_label, exp_label)
-            sirna_label = (sirna_label, sirna_label)
+            img_location = [img_location, img_location]
+            img_final = [img_txf_final, imgs_orig_final]
+            exp_label = [exp_label, exp_label]
             
-            return img_final, exp_label, sirna_label
+            return img_location, img_final, exp_label, sirna_label
         
         
         img_final = torch.cat(imgs, dim = 0) / 255

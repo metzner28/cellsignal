@@ -1,23 +1,10 @@
 # %%
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-import torch.optim as optim
-from torch.optim import lr_scheduler
 import torchvision
-import os
-from data_loader_gpu import CellSignalDataset
-from torch.utils.data import DataLoader, random_split
-import time
-import copy
-from tqdm.auto import tqdm
 from torch.optim.optimizer import Optimizer, required
 
-# %%
 # %%
 # per paper - this gets pretrained with the contrastive loss, then we train a linear classifier with CE loss on top of it
 class ContrastiveCellTypeEncoder(nn.Module):
@@ -50,11 +37,11 @@ class ContrastiveCellTypeEncoder(nn.Module):
         x = self.features(x).flatten(1)
         emb = self.embedding(cell_types)
         emb_x = x * emb
-        encoder_output = F.ReLU(emb_x)
+        encoder_output = F.relu(emb_x)
         projection = self.head(encoder_output)
         projection = F.normalize(projection, dim = 1)
 
-        assert torch.allclose(torch.linalg.norm(projection, dim = 1), torch.tensor(1))
+        assert torch.allclose(torch.linalg.norm(projection, dim = 1), torch.tensor(1.0))
 
         return projection, encoder_output
 
