@@ -139,8 +139,8 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 # %%
 dataloaders = {'train': train_loader, 'val': val_loader}
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9)
-model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
+optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9, weight_decay = 0.005)
+model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.5, patience = 2)
 
 # %%
 params = {
@@ -152,8 +152,8 @@ params = {
     'dataset_sizes': dataset_sizes
 }
 
-model, history = train_model(**params, epochs = 25)
+model, history = train_model(**params, epochs = 32)
 df_model = pd.DataFrame(history)
-df_model.to_csv("resnet18_mdfinal.csv", index = False)
+df_model.to_csv("baseline/baseline_ce.csv", index = False)
 
-torch.save(model.state_dict(), 'resnet18_baseline_mdfinal.pt')
+torch.save(model.state_dict(), 'baseline/baseline_ce.pt')

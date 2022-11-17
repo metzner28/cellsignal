@@ -14,9 +14,7 @@ from tqdm.auto import tqdm
 from helpers_contrastive import *
 
 # %%
-
-# md_path = '../md_final.csv'
-md_path = '/Volumes/DRIVE/md_train.csv'
+md_path = '../md_final.csv'
 
 data = CellSignalDataset(md_path, transform = None)
 data_for_encoder = CellSignalDataset(md_path, transform = transforms.AugMix())
@@ -26,7 +24,7 @@ n_train = round(len(data) * TRAIN_VAL_SPLIT)
 n_val = round(len(data) * (1 - TRAIN_VAL_SPLIT))
 assert n_train + n_val == len(data)
 
-enc_loader = DataLoader(data_for_encoder, batch_size = 4, shuffle = True)
+enc_loader = DataLoader(data_for_encoder, batch_size = 128, shuffle = True)
 
 train, val = random_split(data, lengths = [n_train, n_val], generator = torch.Generator().manual_seed(42))
 train_loader = DataLoader(train, batch_size = 32, shuffle = True)
@@ -71,8 +69,10 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
             # concatenate the transformed and original images from each batch into a multiview batch, per paper - ensures >1 positive per batch
 
             # the original and transformed images need to be next to each other for the loss fn to work - this is not how the dataloader returns them
-            # fix that with python list magic here - the dataloader returns a 2-length list of tuples where the things we want next to each other are at the same position in each of the tuples
-            loc = [loc[n][i] for i in range(len(loc[0])) for n in range(len(loc))]
+            # fix that with python list magic here
+            # the dataloader returns a 2-length list of tuples where the things we want next to each other are at the same position in each of the tuples
+
+            # loc = [loc[n][i] for i in range(len(loc[0])) for n in range(len(loc))]
             inputs = [inputs[n][i] for i in range(len(inputs[0])) for n in range(len(inputs))]
             exp_labels = [exp_labels[n][i] for i in range(len(exp_labels[0])) for n in range(len(exp_labels))]
 
@@ -94,6 +94,7 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
                 
                 # assuming output.shape is (64,128) and only 2 views per image
                 # as long as the view outputs are next to each other within a batch this is right
+
                 outputs = torch.reshape(outputs, (-1, 2, outputs.shape[-1]))
                 
                 loss = criterion(outputs, labels)
@@ -189,7 +190,7 @@ def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloader
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
             if phase == 'val':
-                scheduler.step(epoch_loss)
+                scheduler.step()
 
             if phase == 'train':
                 history['train_loss'].append(epoch_loss)
@@ -216,7 +217,7 @@ def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloader
 # %%
 contrastive = SupConLoss()
 lars = LARS(model_encoder.parameters(), lr=0.1, eta=1e-3)
-enc_scheduler = lr_scheduler.CosineAnnealingLR(lars, 50, verbose = True)
+enc_scheduler = lr_scheduler.CosineAnnealingLR(lars, 32, verbose = True)
 encoder_params = {
     'model': model_encoder,
     'criterion': contrastive,
@@ -224,18 +225,19 @@ encoder_params = {
     'dataloader': enc_loader,
     'dataset_sizes': dataset_sizes,
     'scheduler': enc_scheduler,
-    'epochs': 50
+    'epochs': 32
 }
 
 # %%
 enc_history = train_encoder(**encoder_params)
 df_enc = pd.DataFrame(enc_history)
-df_enc.to_csv("cell_type_encoder_training.csv", index = False)
+df_enc.to_csv("celltype/cell_type_encoder.csv", index = False)
 
 # %%
+# all per SupCon paper
 dataloaders = {'train': train_loader, 'val': val_loader}
 ce = nn.CrossEntropyLoss()
-optimizer = optim.RMSprop(model_classifier.parameters(), lr = 0.01)
+optimizer = optim.RMSprop(model_classifier.parameters(), lr = 0.01, weight_decay = 0.005)
 scheduler = lr_scheduler.ExponentialLR(optimizer, 0.97)
 
 classifier_params = {
@@ -249,6 +251,6 @@ classifier_params = {
 }
 
 # %%
-history = train_classifier(**classifier_params, epochs = 25)
+history = train_classifier(**classifier_params, epochs = 32)
 df_model = pd.DataFrame(history)
 df_model.to_csv("cell_type_classifier.csv", index = False)

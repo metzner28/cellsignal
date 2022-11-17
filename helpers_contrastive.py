@@ -13,7 +13,7 @@ class ContrastiveCellTypeEncoder(nn.Module):
         
         super().__init__()
 
-        # encoder - convnet backbone mapping image to latent features in R^512
+        # encoder - convnet backbone mapping image to latent features in R^512 that lie on unit hypersphere (normalized so embeddings have length 1)
         self.embedding = nn.Embedding(4, emb_dim)
 
         model = torchvision.models.resnet18()
@@ -37,7 +37,7 @@ class ContrastiveCellTypeEncoder(nn.Module):
         x = self.features(x).flatten(1)
         emb = self.embedding(cell_types)
         emb_x = x * emb
-        encoder_output = F.relu(emb_x)
+        encoder_output = F.normalize(F.relu(emb_x), dim = 1)
         projection = self.head(encoder_output)
         projection = F.normalize(projection, dim = 1)
 
@@ -47,7 +47,7 @@ class ContrastiveCellTypeEncoder(nn.Module):
 
 class ContrastiveCellTypeClassifier(nn.Module):
 
-    def __init__(self, in_dim = 128, n_classes = 1139):
+    def __init__(self, in_dim = 512, n_classes = 1139):
         
         super().__init__()
         self.fc = nn.Linear(in_dim, n_classes)

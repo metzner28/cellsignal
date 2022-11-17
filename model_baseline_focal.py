@@ -128,10 +128,10 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 
             if phase == 'train':
                 history['train_loss'].append(epoch_loss)
-                history['train_acc'].append(epoch_acc)
+                history['train_acc'].append(epoch_acc.detach().cpu())
             elif phase == 'val':
                 history['val_loss'].append(epoch_loss)
-                history['val_acc'].append(epoch_acc)
+                history['val_acc'].append(epoch_acc.detach().cpu())
 
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
@@ -152,8 +152,8 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 dataloaders = {'train': train_loader, 'val': val_loader}
 # criterion = nn.CrossEntropyLoss()
 criterion = focal_loss
-optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9)
-model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
+optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9, weight_decay = 0.005)
+model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.5, patience = 2)
 
 # %%
 params = {
@@ -165,10 +165,8 @@ params = {
     'dataset_sizes': dataset_sizes
 }
 
-try:
-    model, history = train_model(**params)
+model, history = train_model(**params, epochs = 32)
+df_model = pd.DataFrame(history)
+df_model.to_csv("baseline/baseline_focal.csv", index = False)
 
-finally:
-    torch.save(model.state_dict(), 'resnet18_focal_fully_trained.pt')
-    df_model = pd.DataFrame(history)
-    df_model.to_csv("resnet18_focal_fully_trained.csv", index = False)
+torch.save(model.state_dict(), 'baseline/baseline_focal.pt')

@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 import torchvision
 from data_loader_gpu import CellSignalDataset
 from torch.utils.data import DataLoader, random_split
@@ -41,23 +42,23 @@ def get_model_outputs(model, dataloader):
             # exp_label = exp_label.to(device)
             # label = label.to(device)
             
-            embeddings, probs = model(input)
-            probs = probs.cpu().detach().numpy()
-            embeddings = embeddings.cpu().detach().numpy()
+            embedding, probs = model(input)
+
+            softmax = nn.Softmax(dim = 1)
+            probs = softmax(probs).cpu().detach().numpy()
+            embedding = embedding.cpu().detach().numpy()
         
             preds.append(probs)
-            embeddings.append(embeddings)
+            embeddings.append(embedding)
             exp_labels.append(exp_label)
             labels.append(label)
-
-        break
     
     preds = np.concatenate(preds, axis = 0)
     embeddings = np.concatenate(embeddings, axis = 0)
     exp_labels = np.array(list(chain(*exp_labels)))
     labels = np.array(list(chain(*labels)))
 
-    return preds, exp_labels, labels
+    return preds, embeddings, exp_labels, labels
 
 
 # %%
@@ -89,32 +90,35 @@ class CellTypeModel(nn.Module):
         x = self.features(x).flatten(1)
         emb = self.embedding(cell_types)
         emb_x = x * emb
-        output_embedding = nn.ReLU(emb_x)
+        output_embedding = F.relu(emb_x)
         fc_final = self.fc(output_embedding)
 
         softmax = nn.Softmax(dim = 1)
         output_probs = softmax(fc_final)
 
+        return emb_x, output_probs
 
+# %%
 
-        return output_embedding, output_probs
-
+model = CellTypeModel()
 try:
     model.load_state_dict(
         torch.load(sys.argv[1])
     )
+    model = model.to(device)
 except:
     raise ValueError("model weights don't exist at specified path")
 
-model = CellTypeModel()
-model = model.to(device)
+# %%
+preds, embeddings, exp_labels, labels = get_model_outputs(model, loader)
 
 # %%
-preds, exp_labels, labels = get_model_outputs(model, loader)
+model_string = sys.argv[1].split(".")[-2]
 
-# %%
 df_preds = pd.DataFrame(np.column_stack((preds, exp_labels, labels)))
 df_preds.rename(columns = {1139:"experiment", 1140:"label"}, inplace = True)
-
-model_string = sys.argv[1].split(".")[-2]
 df_preds.to_csv(f"{model_string}_preds.csv", index = False)
+
+df_embeddings = pd.DataFrame(np.column_stack((embeddings, exp_labels, labels)))
+df_embeddings.rename(columns = {128:"experiment", 129:"label"}, inplace = True)
+df_preds.to_csv(f"{model_string}_embeddings.csv", index = False)

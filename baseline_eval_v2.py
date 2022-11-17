@@ -83,5 +83,5 @@ preds, exp_labels, labels = get_model_outputs(model, loader)
 df_preds = pd.DataFrame(np.column_stack((preds, exp_labels, labels)))
 df_preds.rename(columns = {1139:"experiment", 1140:"label"}, inplace = True)
 
-model_string = sys.argv[1].split(".")[-2]
+model_string = sys.argv[1].split("/")[-1].split(".")[0]
 df_preds.to_csv(f"{model_string}_preds.csv", index = False)
