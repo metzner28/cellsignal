@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import torchvision
-from torchsummary import summary
 from data_loader_gpu import CellSignalDataset
 from torch.utils.data import DataLoader, random_split
 import time
@@ -30,7 +29,7 @@ n_train = round(len(data) * TRAIN_VAL_SPLIT)
 n_val = round(len(data) * (1 - TRAIN_VAL_SPLIT))
 assert n_train + n_val == len(data)
 
-train, val = random_split(data, lengths = [n_train, n_val], generator = torch.Generator().manual_seed(42))
+train, val = random_split(data, lengths = [n_train, n_val], generator = torch.Generator().manual_seed(4242))
 train_loader = DataLoader(train, batch_size = 32, shuffle = True)
 val_loader = DataLoader(val, batch_size = 32, shuffle = True)
 
@@ -152,7 +151,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 dataloaders = {'train': train_loader, 'val': val_loader}
 # criterion = nn.CrossEntropyLoss()
 criterion = focal_loss
-optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9, weight_decay = 0.005)
+optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9, weight_decay = 0.0005)
 model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.5, patience = 2)
 
 # %%
