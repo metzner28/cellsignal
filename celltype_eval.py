@@ -32,17 +32,21 @@ def get_model_outputs(model, dataloader):
     labels = []
 
     model.eval()
+
+    get_celltype = lambda ct: 0 if 'HUVEC' in ct else 1 if 'U2OS' in ct else 2 if 'HEPG2' in ct else 3 if 'RPE' in ct else 4
     
     for input, exp_label, label in tqdm(dataloader):
         
         with torch.set_grad_enabled(False):
             
             input = input.to(device)
+            cell_types = [get_celltype(i) for i in exp_labels]
+            cell_types = torch.LongTensor(cell_types).to(device)
             # print(exp_label)
             # exp_label = exp_label.to(device)
             # label = label.to(device)
             
-            embedding, probs = model(input)
+            embedding, probs = model(input, cell_types)
 
             softmax = nn.Softmax(dim = 1)
             probs = softmax(probs).cpu().detach().numpy()
