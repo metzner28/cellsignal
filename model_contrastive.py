@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-from torchvision import transforms
 from data_loader_gpu import CellSignalDataset
 from torch.utils.data import DataLoader
 import time
@@ -38,7 +37,7 @@ model_classifier.to(device)
 
 # %%
 
-def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs = 50, scheduler = None, enc_state_dict = '../results/contrastive_encoder.pt'):
+def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs = 50, scheduler = None, enc_state_dict = 'contrastive/contrastive_encoder.pt'):
 
     # 4 will throw an error once passed to embedding, which is the way it should be
     get_celltype = lambda ct: 0 if 'HUVEC' in ct else 1 if 'U2OS' in ct else 2 if 'HEPG2' in ct else 3 if 'RPE' in ct else 4
@@ -62,7 +61,7 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
         for inputs, exp_labels, labels in tqdm(dataloader):
 
             inputs = inputs.to(device)
-            labels = labels.to(device)
+            labels = labels[::2].to(device)
             cell_types = [get_celltype(i) for i in exp_labels]
             cell_types = torch.LongTensor(cell_types).to(device)
             
@@ -71,8 +70,8 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
             with torch.set_grad_enabled(True):
                 
                 outputs, _ = model(inputs, cell_types)
+                outputs = torch.reshape(outputs, (-1, 2, outputs.shape[-1]))
 
-                outputs = torch.stack([outputs,outputs], dim = 1)
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
@@ -100,7 +99,7 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
     return history
 
 # %%    
-def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, epochs = 32, enc_state_dict = '../results/contrastive_encoder.pt', save_path = '../results/contrastive_classifier.pt'):
+def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, epochs = 32, enc_state_dict = 'contrastive/contrastive_encoder.pt', save_path = 'contrastive/contrastive_classifier.pt'):
 
     # 4 will throw an error once passed to embedding, which is the way it should be
     get_celltype = lambda ct: 0 if 'HUVEC' in ct else 1 if 'U2OS' in ct else 2 if 'HEPG2' in ct else 3 if 'RPE' in ct else 4
@@ -140,19 +139,17 @@ def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloader
             for inputs, exp_labels, labels in tqdm(dataloaders[phase]):
 
                 inputs = inputs.to(device)
-
-                with torch.no_grad():
-                    _, inputs = encoder(inputs)
-
-                labels = labels.to(device)
-
                 cell_types = [get_celltype(i) for i in exp_labels]
                 cell_types = torch.LongTensor(cell_types).to(device)
-                
+                labels = labels.to(device)
+
+                with torch.no_grad():
+                    _, inputs = encoder(inputs, cell_types)
+
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs, cell_types)
+                    outputs = model(inputs)
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
@@ -209,13 +206,13 @@ encoder_params = {
 # %%
 enc_history = train_encoder(**encoder_params)
 df_enc = pd.DataFrame(enc_history)
-df_enc.to_csv("celltype/cell_type_encoder.csv", index = False)
+df_enc.to_csv("contrastive/contrastive_encoder.csv", index = False)
 
 # %%
 # all per SupCon paper
 dataloaders = {'train': train_loader, 'val': val_loader}
 ce = nn.CrossEntropyLoss()
-optimizer = optim.RMSprop(model_classifier.parameters(), lr = 0.01, weight_decay = 0.005)
+optimizer = optim.RMSprop(model_classifier.parameters(), lr = 0.01, weight_decay = 0.0005)
 scheduler = lr_scheduler.ExponentialLR(optimizer, 0.97)
 
 classifier_params = {
@@ -231,4 +228,4 @@ classifier_params = {
 # %%
 history = train_classifier(**classifier_params, epochs = 32)
 df_model = pd.DataFrame(history)
-df_model.to_csv("cell_type_classifier.csv", index = False)
+df_model.to_csv("contrastive/contrastive_classifier.csv", index = False)

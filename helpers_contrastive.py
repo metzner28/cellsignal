@@ -41,7 +41,12 @@ class ContrastiveCellTypeEncoder(nn.Module):
         projection = self.head(encoder_output)
         projection = F.normalize(projection, dim = 1)
 
-        assert torch.allclose(torch.linalg.norm(projection, dim = 1), torch.tensor(1.0))
+        try:
+            assert torch.allclose(torch.linalg.norm(projection, dim = 1), torch.tensor(1.0))
+        except:
+            print(projection)
+            print(projection.shape)
+            print(cell_types)
 
         return projection, encoder_output
 
