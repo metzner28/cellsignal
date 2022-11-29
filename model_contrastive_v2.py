@@ -5,19 +5,19 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-from data_loader_gpu import CellSignalDataset
+from data_loader_normalized import CellSignalDataset
 from torch.utils.data import DataLoader
 import time
 import copy
 from tqdm.auto import tqdm
-from helpers_contrastive import *
+from helpers_contrastive_v2 import *
 
 # %%
 md_path_train = '../md_contrastive_train.csv'
 md_path_val = '../md_contrastive_val.csv'
 
-train = CellSignalDataset(md_path_train, transform = None)
-val = CellSignalDataset(md_path_val, transform = None)
+train = CellSignalDataset(md_path_train, transform = None, normalize_file = '../metadata_pixel_stats.csv')
+val = CellSignalDataset(md_path_val, transform = None, normalize_file = '../metadata_pixel_stats.csv')
 n_classes = len(np.unique(train.img_labels["sirna_id"]))
 
 enc_loader = DataLoader(train, batch_size = 128, shuffle = False)
@@ -37,7 +37,7 @@ model_classifier.to(device)
 
 # %%
 
-def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs = 50, scheduler = None, enc_state_dict = 'contrastive/contrastive_encoder.pt'):
+def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs = 50, scheduler = None, enc_state_dict = 'contrastive_norm/contrastive_norm_encoder.pt'):
 
     # 4 will throw an error once passed to embedding, which is the way it should be
     get_celltype = lambda ct: 0 if 'HUVEC' in ct else 1 if 'U2OS' in ct else 2 if 'HEPG2' in ct else 3 if 'RPE' in ct else 4
@@ -58,18 +58,18 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
         model.train()
         running_loss = 0.0
 
-        for inputs, exp_labels, labels in tqdm(dataloader):
+        for inputs, _, labels in tqdm(dataloader):
 
             inputs = inputs.to(device)
             labels = labels[::2].to(device)
-            cell_types = [get_celltype(i) for i in exp_labels]
-            cell_types = torch.LongTensor(cell_types).to(device)
+            # cell_types = [get_celltype(i) for i in exp_labels]
+            # cell_types = torch.LongTensor(cell_types).to(device)
             
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(True):
                 
-                outputs, _ = model(inputs, cell_types)
+                outputs, _ = model(inputs)
                 outputs = torch.reshape(outputs, (-1, 2, outputs.shape[-1]))
 
                 loss = criterion(outputs, labels)
@@ -99,7 +99,7 @@ def train_encoder(model, criterion, optimizer, dataloader, dataset_sizes, epochs
     return history
 
 # %%    
-def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, epochs = 32, enc_state_dict = 'contrastive/contrastive_encoder.pt', save_path = 'contrastive/contrastive_classifier.pt'):
+def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, epochs = 32, enc_state_dict = 'contrastive_norm/contrastive_norm_encoder.pt', save_path = 'contrastive_norm/contrastive_norm_classifier.pt'):
 
     # 4 will throw an error once passed to embedding, which is the way it should be
     get_celltype = lambda ct: 0 if 'HUVEC' in ct else 1 if 'U2OS' in ct else 2 if 'HEPG2' in ct else 3 if 'RPE' in ct else 4
@@ -144,12 +144,12 @@ def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloader
                 labels = labels.to(device)
 
                 with torch.no_grad():
-                    _, inputs = encoder(inputs, cell_types)
+                    _, inputs = encoder(inputs)
 
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
+                    outputs = model(inputs, cell_types)
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
@@ -189,24 +189,24 @@ def train_classifier(encoder, model, criterion, optimizer, scheduler, dataloader
     return history
 
 # %%
-# contrastive = SupConLoss()
-# epochs = 32
-# lars = LARS(model_encoder.parameters(), lr=0.1, eta=1e-3)
-# enc_scheduler = lr_scheduler.CosineAnnealingLR(lars, epochs, verbose = False)
-# encoder_params = {
-#     'model': model_encoder,
-#     'criterion': contrastive,
-#     'optimizer': lars,
-#     'dataloader': enc_loader,
-#     'dataset_sizes': dataset_sizes,
-#     'scheduler': enc_scheduler,
-#     'epochs': epochs
-# }
+contrastive = SupConLoss()
+epochs = 25
+lars = LARS(model_encoder.parameters(), lr=0.1, eta=1e-3)
+enc_scheduler = lr_scheduler.CosineAnnealingLR(lars, epochs, verbose = False)
+encoder_params = {
+    'model': model_encoder,
+    'criterion': contrastive,
+    'optimizer': lars,
+    'dataloader': enc_loader,
+    'dataset_sizes': dataset_sizes,
+    'scheduler': enc_scheduler,
+    'epochs': epochs
+}
 
-# # %%
-# enc_history = train_encoder(**encoder_params)
-# df_enc = pd.DataFrame(enc_history)
-# df_enc.to_csv("contrastive/contrastive_encoder.csv", index = False)
+# %%
+enc_history = train_encoder(**encoder_params)
+df_enc = pd.DataFrame(enc_history)
+df_enc.to_csv("contrastive/contrastive_encoder.csv", index = False)
 
 # %%
 # all per SupCon paper
@@ -214,8 +214,7 @@ dataloaders = {'train': train_loader, 'val': val_loader}
 ce = nn.CrossEntropyLoss()
 # optimizer = optim.RMSprop(model_classifier.parameters(), lr = 0.01, weight_decay = 0.0005)
 # scheduler = lr_scheduler.ExponentialLR(optimizer, 0.97)
-optimizer = optim.SGD(model_classifier.parameters(), lr = 0.01, momentum = 0.9, \
-    weight_decay = 0.0005)
+optimizer = optim.SGD(model_classifier.parameters(), lr = 0.01, momentum = 0.9, weight_decay = 0.0005)
 model_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience = 2)
 
 classifier_params = {
@@ -229,6 +228,6 @@ classifier_params = {
 }
 
 # %%
-history = train_classifier(**classifier_params, epochs = 32)
+history = train_classifier(**classifier_params, epochs = 25)
 df_model = pd.DataFrame(history)
-df_model.to_csv("contrastive/contrastive_classifier.csv", index = False)
+df_model.to_csv("contrastive_norm/contrastive_norm_classifier.csv", index = False)

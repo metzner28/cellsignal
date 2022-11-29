@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 import torchvision
 import os
-from data_loader_gpu import CellSignalDataset
+from data_loader_normalized import CellSignalDataset
 from torch.utils.data import DataLoader, random_split
 import time
 import copy

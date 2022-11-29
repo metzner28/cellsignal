@@ -3,10 +3,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from torchvision.io import read_image
 from torchvision.transforms import Normalize
-
+from torchvision import transforms
 
 # %%
 class CellSignalDataset(Dataset):
@@ -16,7 +16,10 @@ class CellSignalDataset(Dataset):
         self.img_labels = pd.read_csv(annotations_file)
         self.transform = transform
         self.target_transform = target_transform
-        self.normalize_file = pd.read_csv(normalize_file)
+        self.normalize_file = normalize_file
+        
+        if normalize_file is not None:
+            self.normalize_file = pd.read_csv(self.normalize_file)
     
     def __len__(self):
         
@@ -36,15 +39,13 @@ class CellSignalDataset(Dataset):
         
         if self.transform is not None:
             
-            img_txf = [self.transform.forward(img) for img in imgs]
-            img_txf_final = torch.cat(img_txf, dim = 0) / 255
-            imgs_orig_final = torch.cat(imgs, dim = 0) / 255
+            imgs = [self.transform.forward(img) for img in imgs]
+            # img_txf_final = torch.cat(img_txf, dim = 0) / 255
+            # imgs_orig_final = torch.cat(imgs, dim = 0) / 255
             
-            img_location = [img_location, img_location]
-            img_final = [img_txf_final, imgs_orig_final]
-            exp_label = [exp_label, exp_label]
-            
-            return img_location, img_final, exp_label, sirna_label
+            # img_location = [img_location, img_location]
+            # img_final = [img_txf_final, imgs_orig_final]
+            # exp_label = [exp_label, exp_label]
 
         if self.normalize_file is not None:
             
@@ -52,8 +53,8 @@ class CellSignalDataset(Dataset):
             img_site = self.img_labels.iloc[idx, self.img_labels.columns.get_loc("site")]
             df_well = self.normalize_file[(self.normalize_file["id_code"] == img_well_id) & (self.normalize_file["site"] == img_site)]
             
-            means = df_well["mean"]
-            sds = df_well["std"]
+            means = df_well["mean"].tolist()
+            sds = df_well["std"].tolist()
             assert len(means) == len(sds) == 6
 
             imgs = [Normalize(means[i], sds[i]).forward(img.float()) for i, img in enumerate(imgs)]
