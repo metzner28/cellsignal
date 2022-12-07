@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from data_loader_gpu import CellSignalDataset
+from data_loader_normalized import CellSignalDataset
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from helpers_contrastive_v2 import *
@@ -12,11 +12,11 @@ from itertools import chain
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # %%
-md_path = "md_test_final.csv"
-# md_path = '../md_contrastive_train.csv'
+# md_path = "md_test_final.csv"
+md_path = '../md_contrastive_train_10views.csv'
 
-test = CellSignalDataset(md_path, transform = None)
-loader = DataLoader(test, batch_size = 32, shuffle = False)
+test = CellSignalDataset(md_path, transform = None, normalize_file = '../metadata_pixel_stats.csv')
+loader = DataLoader(test, batch_size = 40, shuffle = False)
 
 # %%
 def get_model_outputs(encoder, classifier, dataloader):
@@ -69,7 +69,7 @@ def get_model_outputs(encoder, classifier, dataloader):
 encoder = ContrastiveCellTypeEncoder()
 classifier = ContrastiveCellTypeClassifier()
 
-enc = "contrastive/contrastive_encoder.pt"
+enc = "1204_2v_contrastive/1204_contrastive_encoder_72e.pt"
 # cls = "contrastive/contrastive_classifier.pt"
 
 try:
@@ -91,7 +91,7 @@ except:
 projections, embeddings, exp_labels, labels = get_model_outputs(encoder, classifier, loader)
 
 # %%
-model_string = 'test'
+model_string = '221206_contrastive_2v_72'
 
 # df_preds = pd.DataFrame(np.column_stack((preds, exp_labels, labels)))
 # df_preds.rename(columns = {1139:"experiment", 1140:"label"}, inplace = True)
@@ -99,10 +99,10 @@ model_string = 'test'
 # %%
 df_embeddings = pd.DataFrame(np.column_stack((embeddings, exp_labels, labels)))
 df_embeddings.rename(columns = {512:"experiment", 513:"label"}, inplace = True)
-df_embeddings.to_csv(f"contrastive/{model_string}_embeddings.csv", index = False)
+df_embeddings.to_csv(f"1204_2v_contrastive/{model_string}_embeddings.csv", index = False)
 
 # %%
-df_projection = pd.DataFrame(np.column_stack((projections, exp_labels, labels)))
-df_projection.rename(columns = {128:"experiment", 129:"label"}, inplace = True)
-df_projection.to_csv(f"contrastive/{model_string}_projections.csv", index = False)
+# df_projection = pd.DataFrame(np.column_stack((projections, exp_labels, labels)))
+# df_projection.rename(columns = {128:"experiment", 129:"label"}, inplace = True)
+# df_projection.to_csv(f"5vnl_contrastive/{model_string}_projections.csv", index = False)
 

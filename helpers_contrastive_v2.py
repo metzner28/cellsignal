@@ -4,6 +4,11 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torchvision
 from torch.optim.optimizer import Optimizer, required
+from sklearn.manifold import TSNE
+import seaborn as sns
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 # %%
 # per paper - this gets pretrained with the contrastive loss, then we train a linear classifier with CE loss on top of it
@@ -111,6 +116,7 @@ class SupConLoss(nn.Module):
             mask = torch.eq(labels, labels.T).float().to(device)
         else:
             mask = mask.float().to(device)
+        # print(mask.sum(1))
 
         contrast_count = features.shape[1]
         contrast_feature = torch.cat(torch.unbind(features, dim=1), dim=0)
@@ -143,7 +149,10 @@ class SupConLoss(nn.Module):
         mask = mask * logits_mask
 
         # compute log_prob
+        # add batch size normalization to the negatives here
         exp_logits = torch.exp(logits) * logits_mask
+        # normalizer = torch.max(batch_size - mask.sum(1))
+        # log_prob = logits - torch.log(torch.div(exp_logits.sum(1, keepdim=True), normalizer))
         log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True))
 
         # compute mean of log-likelihood over positive
@@ -248,3 +257,36 @@ class LARS(Optimizer):
                 p.data.add_(-buf)
 
         return loss
+
+# %%
+def get_tsne(embeddings, save_path = None):
+    
+    tsne = TSNE()
+    if type(embeddings) is str:
+        embeddings = pd.read_csv(embeddings)
+    out = tsne.fit_transform(embeddings.iloc[:,:512])
+    
+    true_labels = pd.DataFrame(embeddings.iloc[:,513])
+    true_labels.columns = ["sirna_id"]
+    
+    pclasses = pd.read_csv('../sirna_functions.csv')
+    pclass_labels = true_labels.join(pclasses.set_index("sirna_id"), on = 'sirna_id')
+    
+    out = pd.DataFrame(out)
+    out.columns = ["tsne_x", "tsne_y"]
+    tsne_labeled = out.join(pclass_labels)
+    tsne_exp_labeled = tsne_labeled.join(pd.DataFrame(embeddings.iloc[:,512]))
+    
+    df_final = tsne_exp_labeled[tsne_exp_labeled["parent"].notna()]
+    
+    fig, ax = plt.subplots(ncols = 2, figsize = (20,10))
+    sns.scatterplot(ax = ax[0], data = df_final, x = "tsne_x", y = "tsne_y", hue = "parent")
+    sns.scatterplot(ax = ax[1], data = df_final, x = "tsne_x", y = "tsne_y", hue = "experiment")
+    ax[0].axis("off")
+    ax[1].axis("off")
+    fig.show()
+
+    if save_path is not None:
+        df_final.to_csv(save_path, index = False)
+    
+

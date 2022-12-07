@@ -6,3 +6,9 @@ cell_type_norm
 contrastive_norm
 baseline_tx
 celltype_tx
+contrastive_4v
+contrastive_4v_new_loss
+contrastive_10v
+5vnl_contrastive
+1204_2v_contrastive
+1206_last_try

@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier, NeighborhoodComponentsAnalysis
 from sklearn.manifold import TSNE
 import seaborn as sns
+from helpers_contrastive_v2 import *
 
 # %%
 embeddings_train = pd.read_csv("contrastive/contrastive_embeddings.csv")
