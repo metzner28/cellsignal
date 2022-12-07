@@ -1,0 +1,276 @@
+[33mcommit 75064bbf8d055fe6b2efeaee864f2b255773bee9[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Wed Dec 7 22:15:12 2022 +0000
+
+    final set of changes
+
+[33mcommit 9fce3ee04516ef6066ac0c956f8b9f8dedcaee2f[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Wed Dec 7 22:13:34 2022 +0000
+
+    final set of changes
+
+[33mcommit 73930b16b983a9e646bf02a30f6ee01d1409acaf[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Wed Dec 7 22:01:44 2022 +0000
+
+    final set of changes
+
+[33mcommit 048aaadb115c805a44f96d5db80129cadb04dcef[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Tue Nov 29 04:19:58 2022 +0000
+
+    contrastive tsne
+
+[33mcommit c30c70f90edfb40724e359ef20c3c52d844d23ed[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Fri Nov 25 19:39:53 2022 -0500
+
+    normalization
+
+[33mcommit 8bd17adceb212f9d7fde74e30782de7b562529b7[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Mon Nov 21 18:32:16 2022 +0000
+
+    fixed contrastive
+
+[33mcommit f7aff11635ef5bcd199184d74f05078801a35822[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Sat Nov 19 23:15:49 2022 +0000
+
+    added contrastive to gitignore
+
+[33mcommit 24e0cb34ea9e82a88fe468e9ca34e6cdba6ebdaf[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Sat Nov 19 22:37:33 2022 +0000
+
+    contrastive dataloaders
+
+[33mcommit 796a3be32a66a23be8db1bedd407ad6ffcc4d3ea[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Sat Nov 19 12:26:18 2022 -0500
+
+    fixed celltype eval
+
+[33mcommit c630522c01c10de2c12f382f9ae1e22b51bf653d[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Sat Nov 19 17:25:36 2022 +0000
+
+    weight decay
+
+[33mcommit 95e5912e0f61fa3e4c7d0195753dbfcd3c36d48a[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Fri Nov 18 16:34:36 2022 +0000
+
+    seed for trainval split
+
+[33mcommit f645e5b49544b0bd4aef1eceaa3ee6e5bc37f587[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Wed Nov 16 22:58:29 2022 -0500
+
+    added contrastive eval
+
+[33mcommit 9758171685f143a8709daad49668ba0f93d76fe7[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Tue Nov 15 19:12:55 2022 -0500
+
+    train preflight
+
+[33mcommit fd7a877a24c0f8c9a6f3c71126fbc9cd2a1f1faf[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Tue Nov 15 12:33:24 2022 -0500
+
+    batch transformations
+
+[33mcommit 21fa9b615250c46c312e244bf190279753b9b24a[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Tue Nov 15 11:54:20 2022 -0500
+
+    optimizers
+
+[33mcommit 145c369d4152b90e9d45c26ba0c20e077f07867a[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Tue Nov 15 11:30:46 2022 -0500
+
+    contrastive model
+
+[33mcommit 51c26d7472777880577369d269d0ebe232091165[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Tue Nov 15 09:48:46 2022 -0500
+
+    fixed preds
+
+[33mcommit 54c093e9b50792274a0a5e6f55ab7c6893dd8d4f[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Tue Nov 15 09:48:28 2022 -0500
+
+    fixed preds
+
+[33mcommit ab3e8f06fce6b4e6aa9e0865c5e701be043a2bde[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Mon Nov 14 22:18:41 2022 -0500
+
+    preds
+
+[33mcommit 9d53ca9f2cb72eac4f162878f1157c4a2f4b334c[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Tue Nov 15 02:58:05 2022 +0000
+
+    fixed preds
+
+[33mcommit 84c7bf302f49a7431576f832c81458c94f2b678b[m
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Tue Nov 15 02:11:37 2022 +0000
+
+    preds
+
+[33mcommit 989c8e10e8496169bc5a3fc0943aafb3cea1d82b[m
+Merge: df8621c c71baf0
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Fri Nov 11 02:23:16 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit c71baf052d8e4938a118d535cca8d2f6142c6dd3[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 21:22:31 2022 -0500
+
+    float
+
+[33mcommit df8621c2625c62a7313926a9fdf019f9d1edacf6[m
+Merge: d8a041a ceb76e3
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Fri Nov 11 01:38:55 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit ceb76e332aa8e7f22c5c7813b8b3a3582fd6b350[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 20:38:42 2022 -0500
+
+    building celltype model
+
+[33mcommit d8a041a75a04280cf16700edea2de30708642660[m
+Merge: 5623959 2998384
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Fri Nov 11 01:05:11 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit 2998384961fc1a2b3408932d1d4bf2b8215a3d85[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 20:04:56 2022 -0500
+
+    embeddings
+
+[33mcommit 56239592efd661d58826206d9dc8597345437f8c[m
+Merge: 7190045 d99c210
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 21:56:02 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit d99c21055cc2ffe89e831d30e3984e07580117e0[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 16:55:53 2022 -0500
+
+    model destination
+
+[33mcommit 7b9da8ef84d44d53f592ad96a60055ccb88409cd[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 16:54:00 2022 -0500
+
+    dataset
+
+[33mcommit 74e7c77004534c1e464916470241e362f4a2e874[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 16:53:54 2022 -0500
+
+    change dataset for baseline model
+
+[33mcommit 719004538bc1b38ed8d2e7fdaed52d14f61266e3[m
+Merge: ea438ac cad2733
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 19:40:38 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit cad2733fa4bdfb079c1d43df8e1bf263ad005fce[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 14:40:22 2022 -0500
+
+    lr
+
+[33mcommit ea438ac7ee623b736b7c8112d9e7c576b9afe522[m
+Merge: bd98c17 1ef11e4
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 19:19:26 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit 1ef11e41bde98c2ed602b09aa6914a27e13fefc0[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 14:19:16 2022 -0500
+
+    lr scheduler
+
+[33mcommit bd98c17eec21c46ba988c9d24c3551283943a86a[m
+Merge: 3345216 4b6d3a5
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 19:16:20 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit 4b6d3a5dbd5ed8ddd10d41dc2514895b9ef285e7[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 14:16:04 2022 -0500
+
+    lr scheduler
+
+[33mcommit 334521663ca866670b4561b3521fe14c496678d4[m
+Merge: f0f7129 b239569
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 19:08:31 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit b239569b6a55a6988c9d3d8769a16f654d719d19[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 14:08:16 2022 -0500
+
+    lr scheduler
+
+[33mcommit f0f7129a4a98217013b9b0bd6d4d75cca5b7dcce[m
+Merge: 9660379 05acb24
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 18:11:46 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit 05acb2405766dfb8f873a5a7ff5ef54a165210c5[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 13:11:37 2022 -0500
+
+    gpu stuff
+
+[33mcommit 9660379986c6674439cd0a0fa310ee3e2b26873e[m
+Merge: c02f97f 47a49f4
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 17:55:10 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit 47a49f4e0d8f52487c743f9217a94f8810b792d5[m
+Author: metzner28 <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 12:55:01 2022 -0500
+
+    update eval to output full vector of probabilities for top-n acc
+
+[33mcommit c02f97f49490bd22c4abbeec46cb640115558bb6[m
+Merge: 22dc84e f742f1c
+Author: Eli Metzner <eli.metzner28@gmail.com>
+Date:   Thu Nov 10 17:34:07 2022 +0000
+
+    Merge branch 'main' of https://github.com/metzner28/cellsignal into main
+
+[33mcommit f
