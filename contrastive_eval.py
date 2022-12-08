@@ -69,7 +69,7 @@ def get_model_outputs(encoder, classifier, dataloader):
 encoder = ContrastiveCellTypeEncoder()
 classifier = ContrastiveCellTypeClassifier()
 
-enc = "1204_2v_contrastive/1204_contrastive_encoder_72e.pt"
+enc = "1206_last_try/1206_contrastive_encoder_54e.pt"
 # cls = "contrastive/contrastive_classifier.pt"
 
 try:
@@ -91,7 +91,7 @@ except:
 projections, embeddings, exp_labels, labels = get_model_outputs(encoder, classifier, loader)
 
 # %%
-model_string = '221206_contrastive_2v_72'
+model_string = '221206_contrastive_5v_52_no_activation'
 
 # df_preds = pd.DataFrame(np.column_stack((preds, exp_labels, labels)))
 # df_preds.rename(columns = {1139:"experiment", 1140:"label"}, inplace = True)
@@ -99,10 +99,10 @@ model_string = '221206_contrastive_2v_72'
 # %%
 df_embeddings = pd.DataFrame(np.column_stack((embeddings, exp_labels, labels)))
 df_embeddings.rename(columns = {512:"experiment", 513:"label"}, inplace = True)
-df_embeddings.to_csv(f"1204_2v_contrastive/{model_string}_embeddings.csv", index = False)
+df_embeddings.to_csv(f"1206_last_try/{model_string}_embeddings.csv", index = False)
 
 # %%
-# df_projection = pd.DataFrame(np.column_stack((projections, exp_labels, labels)))
-# df_projection.rename(columns = {128:"experiment", 129:"label"}, inplace = True)
-# df_projection.to_csv(f"5vnl_contrastive/{model_string}_projections.csv", index = False)
+df_projection = pd.DataFrame(np.column_stack((projections, exp_labels, labels)))
+df_projection.rename(columns = {128:"experiment", 129:"label"}, inplace = True)
+df_projection.to_csv(f"1206_last_try/{model_string}_projections.csv", index = False)
 

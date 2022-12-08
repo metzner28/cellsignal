@@ -38,7 +38,8 @@ class ContrastiveCellTypeEncoder(nn.Module):
     def forward(self, x):
         
         x = self.features(x).flatten(1)
-        encoder_output = F.normalize(F.relu(x), dim = 1)
+        # encoder_output = F.normalize(F.relu(x), dim = 1)
+        encoder_output = F.normalize(x, dim = 1)
         projection = self.head(encoder_output)
         projection = F.normalize(projection, dim = 1)
 
@@ -259,32 +260,53 @@ class LARS(Optimizer):
         return loss
 
 # %%
-def get_tsne(embeddings, save_path = None):
+def get_tsne(embeddings, save_path = None, projections = False):
     
-    tsne = TSNE()
+    
     if type(embeddings) is str:
         embeddings = pd.read_csv(embeddings)
-    out = tsne.fit_transform(embeddings.iloc[:,:512])
     
-    true_labels = pd.DataFrame(embeddings.iloc[:,513])
-    true_labels.columns = ["sirna_id"]
+    if not projections:
+        tsne = TSNE()
+        out = tsne.fit_transform(embeddings.iloc[:,:512])
+        
+        true_labels = pd.DataFrame(embeddings.iloc[:,513])
+        true_labels.columns = ["sirna_id"]
+        
+        pclasses = pd.read_csv('../sirna_functions.csv')
+        pclass_labels = true_labels.join(pclasses.set_index("sirna_id"), on = 'sirna_id')
+        
+        out = pd.DataFrame(out)
+        out.columns = ["tsne_x", "tsne_y"]
+        tsne_labeled = out.join(pclass_labels)
+        tsne_exp_labeled = tsne_labeled.join(pd.DataFrame(embeddings.iloc[:,512]))
+        
+        df_final = tsne_exp_labeled[tsne_exp_labeled["parent"].notna()]
     
-    pclasses = pd.read_csv('../sirna_functions.csv')
-    pclass_labels = true_labels.join(pclasses.set_index("sirna_id"), on = 'sirna_id')
-    
-    out = pd.DataFrame(out)
-    out.columns = ["tsne_x", "tsne_y"]
-    tsne_labeled = out.join(pclass_labels)
-    tsne_exp_labeled = tsne_labeled.join(pd.DataFrame(embeddings.iloc[:,512]))
-    
-    df_final = tsne_exp_labeled[tsne_exp_labeled["parent"].notna()]
-    
+    else:
+        tsne = TSNE(perplexity=100)
+        out = tsne.fit_transform(embeddings.iloc[:,:128])
+        
+        true_labels = pd.DataFrame(embeddings.iloc[:,129])
+        true_labels.columns = ["sirna_id"]
+        
+        pclasses = pd.read_csv('../sirna_functions.csv')
+        pclass_labels = true_labels.join(pclasses.set_index("sirna_id"), on = 'sirna_id')
+        
+        out = pd.DataFrame(out)
+        out.columns = ["tsne_x", "tsne_y"]
+        tsne_labeled = out.join(pclass_labels)
+        tsne_exp_labeled = tsne_labeled.join(pd.DataFrame(embeddings.iloc[:,128]))
+        
+        df_final = tsne_exp_labeled[tsne_exp_labeled["parent"].notna()]
+        
     fig, ax = plt.subplots(ncols = 2, figsize = (20,10))
     sns.scatterplot(ax = ax[0], data = df_final, x = "tsne_x", y = "tsne_y", hue = "parent")
     sns.scatterplot(ax = ax[1], data = df_final, x = "tsne_x", y = "tsne_y", hue = "experiment")
     ax[0].axis("off")
     ax[1].axis("off")
     fig.show()
+
 
     if save_path is not None:
         df_final.to_csv(save_path, index = False)
